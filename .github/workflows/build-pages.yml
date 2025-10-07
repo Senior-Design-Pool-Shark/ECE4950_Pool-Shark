@@ -41,10 +41,10 @@ jobs:
           <head>
             <meta charset="utf-8">
             <title>Project Repository Files</title>
-              # Simple styling to make the page look better:
-              #  - Set font to Arial
-              #  - Add some margins
-              #  - Color headings
+              <!-- Simple styling to make the page look better:
+                - Set font to Arial
+                - Add some margins
+                - Color headings -->
             <style>
               body { font-family: Arial, sans-serif; margin: 2rem; line-height:1.6; }
               h1 { color:#333333; }
@@ -68,14 +68,14 @@ jobs:
           echo "<div class='recent'><h2>Recently Updated Files</h2><ul>" >> index.html
 
           # The git log command below:
-          # --pretty=format:'%ad|%H'  -> print commit date and commit hash
+          # --pretty=format:'%ad'     -> print commit date
           # --date=short              -> date in YYYY-MM-DD format
           # -n 50                     -> look at the last 50 commits
           
           # from changed file list, determine first occurrance of each file
           # then use awk to pattern match dates and look for lines not yet seen before in the fields
           # take first 5 entries of the created date/unique file list
-          git log --pretty=format:'%ad|%H' --date=short -n 50 --name-only | \
+          git log --pretty=format:'%ad' --date=short -n 50 --name-only | \
             awk 'BEGIN{date=""}
                  /^20[0-9][0-9]-/ {date=$0; next}  # lines with dates set current date
                  NF {if(!seen[$0]++){print date"|"$0}}' | \
@@ -103,11 +103,12 @@ jobs:
             {
               folder=$1;  # first part of the path, e.g. "projects_1"
               if(folder!=current){
-                if(current!=""){print "</ul>"}          # close previous list if switching folders
+                if(current!=""){print "</ul>"}         # close previous list if switching folders
                 print "<h3>"folder"</h3><ul>";         # start new section
                 current=folder
               }
-              print "<li><a href=\"https://github.com/${GITHUB_REPOSITORY}/blob/main/"$0"\">"$0"</a></li>"
+              subpath = ($2) ? substr($0, index($0, $2)) : $0
+              print "<li><a href=\"https://github.com/${GITHUB_REPOSITORY}/blob/main/"$0"\">"subpath"</a></li>"
             }
             END{if(current!=""){print "</ul>"}}
           ' >> index.html
