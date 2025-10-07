@@ -25,11 +25,11 @@ jobs:
     runs-on: ubuntu-latest   # GitHub will create a fresh Ubuntu VM
 
     steps:
-      # 1. Obtain copy of repo files on VM
+      # Step 1: Obtain copy of repo files on VM
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. CREATE A SIMPLE HTML PAGE LISTING FILES
+      # Step 2: Create html format
       - name: Generate file list HTML
         run: |
           # ------------------------------
@@ -107,7 +107,7 @@ jobs:
                 print "<h3>"folder"</h3><ul>";         # start new section
                 current=folder
               }
-              print "<li><a href=\"https://github.com/'"${GITHUB_REPOSITORY}"'/blob/main/"$0"\">"$0"</a></li>"
+              print "<li><a href=\"https://github.com/${GITHUB_REPOSITORY}/blob/main/"$0"\">"$0"</a></li>"
             }
             END{if(current!=""){print "</ul>"}}
           ' >> index.html
@@ -116,4 +116,11 @@ jobs:
           # 4. CLOSE THE HTML PAGE
           # ------------------------------
           echo "</body></html>" >> index.html
+
+      # Step 3 Build pages website
+      - name : Deploy to pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN}}
+          publish_dir: .
 
