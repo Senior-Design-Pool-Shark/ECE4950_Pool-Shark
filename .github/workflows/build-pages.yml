@@ -1,0 +1,62 @@
+# ------------------------------
+#  WORKFLOW NAME
+# ------------------------------
+name: Build and Publish Website
+
+# ------------------------------
+#  TRIGGERS
+# ------------------------------
+on:
+  push:            # Run the workflow every time code is pushed
+    branches:
+      - main       # Only run when the push targets the main branch
+
+# ------------------------------
+#  PERMISSIONS
+# ------------------------------
+permissions:
+  contents: write  # allows write for pages
+
+# ------------------------------
+#  JOBS
+# ------------------------------
+jobs:
+  build:                     # Job name ("build")
+    runs-on: ubuntu-latest   # GitHub will create a fresh Ubuntu VM
+
+    steps:
+      # 1. CHECK OUT CODE
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        # This pulls your repo's latest files into the VM so we can work with them.
+
+      # 2. CREATE A SIMPLE HTML PAGE LISTING FILES
+      - name: Generate file list HTML
+        run: |
+          # Create a base HTML file
+          echo "<html><head><title>Project Files</title></head><body>" > index.html
+          echo "<h1>Repository File List</h1><ul>" >> index.html
+
+          # List every file (excluding .git and the index we're building)
+          find . -type f ! -path "./.git/*" ! -name "index.html" | sed 's|^\./||' | while read f; do
+            echo "<li><a href=\"https://github.com/${{ github.repository }}/blob/main/$f\">$f</a></li>" >> index.html
+          done
+          echo "</ul>" >> index.html
+
+          # Section for most recently changed files
+          echo "<h2>Most Recently Changed Files</h2><ul>" >> index.html
+          # Use git log to get the last 5 files changed (most recent commits)
+          git log --pretty=format: --name-only -n 20 | grep -v '^$' | head -5 | while read f; do
+            echo "<li><a href=\"https://github.com/${{ github.repository }}/blob/main/$f\">$f</a></li>" >> index.html
+          done
+          echo "</ul></body></html>" >> index.html
+
+      # 3. DEPLOY TO GITHUB PAGES
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: .
+          # GITHUB_TOKEN is automatically provided; it authorizes the Action to push
+          # to the gh-pages branch. "publish_dir: ." means publish everything in
+          # the current directory (where index.html lives).
