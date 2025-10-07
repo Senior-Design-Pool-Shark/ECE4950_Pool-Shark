@@ -40,7 +40,7 @@ jobs:
           <html>
           <head>
             <meta charset="utf-8">
-            <title>Project Repository Files</title>
+            <title>Project Files Team 15</title>
               <!-- Simple styling to make the page look better:
                 - Set font to Arial
                 - Add some margins
@@ -63,7 +63,7 @@ jobs:
           EOF
 
           # ------------------------------
-          # 2. RECENTLY UPDATED FILES
+          # 2. Forming recently updated section
           # ------------------------------
           echo "<div class='recent'><h2>Recently Updated Files</h2><ul>" >> index.html
 
