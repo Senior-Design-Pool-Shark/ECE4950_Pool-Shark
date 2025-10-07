@@ -25,38 +25,95 @@ jobs:
     runs-on: ubuntu-latest   # GitHub will create a fresh Ubuntu VM
 
     steps:
-      # 1. CHECK OUT CODE
+      # 1. Obtain copy of repo files on VM
       - name: Checkout repository
         uses: actions/checkout@v4
-        # This pulls your repo's latest files into the VM so we can work with them.
 
       # 2. CREATE A SIMPLE HTML PAGE LISTING FILES
       - name: Generate file list HTML
         run: |
-          # Create a base HTML file
-          echo "<html><head><title>Project Files</title></head><body>" > index.html
-          echo "<h1>Repository File List</h1><ul>" >> index.html
+          # ------------------------------
+          # 1. START THE HTML PAGE
+          # ------------------------------
+          # The cat <<'EOF' ... EOF syntax writes everything between to index.html.
+          cat <<'EOF' > index.html
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Project Repository Files</title>
+              # Simple styling to make the page look better:
+              #  - Set font to Arial
+              #  - Add some margins
+              #  - Color headings
+            <style>
+              body { font-family: Arial, sans-serif; margin: 2rem; line-height:1.6; }
+              h1 { color:#333333; }
+              h2, h3 { margin-top:1.2em; color:#444444; }
+              ul { list-style-type: none; padding-left: 1rem; }
+              li { margin: 0.3em 0; }
+              a { text-decoration: none; color: #1a73e8; }
+              a:hover { text-decoration: underline; }
+              .recent { background: #f0f4ff; padding:0.5em; border-radius:5px; }
+              .date { color: #555; font-size: 0.9em; }
+            </style>
+          </head>
+          <body>
+          <h1>Project Repository Files</h1>
+          <p>This page is auto-generated on every push to <code>main</code>.</p>
+          EOF
 
-          # List every file (excluding .git and the index we're building)
-          find . -type f ! -path "./.git/*" ! -name "index.html" | sed 's|^\./||' | while read f; do
-            echo "<li><a href=\"https://github.com/${{ github.repository }}/blob/main/$f\">$f</a></li>" >> index.html
-          done
-          echo "</ul>" >> index.html
+          # ------------------------------
+          # 2. RECENTLY UPDATED FILES
+          # ------------------------------
+          echo "<div class='recent'><h2>Recently Updated Files</h2><ul>" >> index.html
 
-          # Section for most recently changed files
-          echo "<h2>Most Recently Changed Files</h2><ul>" >> index.html
-          # Use git log to get the last 5 files changed (most recent commits)
-          git log --pretty=format: --name-only -n 20 | grep -v '^$' | head -5 | while read f; do
-            echo "<li><a href=\"https://github.com/${{ github.repository }}/blob/main/$f\">$f</a></li>" >> index.html
-          done
-          echo "</ul></body></html>" >> index.html
+          # The git log command below:
+          # --pretty=format:'%ad|%H'  -> print commit date and commit hash
+          # --date=short              -> date in YYYY-MM-DD format
+          # -n 50                     -> look at the last 50 commits
+          
+          # from changed file list, determine first occurrance of each file
+          # then use awk to pattern match dates and look for lines not yet seen before in the fields
+          # take first 5 entries of the created date/unique file list
+          git log --pretty=format:'%ad|%H' --date=short -n 50 --name-only | \
+            awk 'BEGIN{date=""}
+                 /^20[0-9][0-9]-/ {date=$0; next}  # lines with dates set current date
+                 NF {if(!seen[$0]++){print date"|"$0}}' | \
+            head -5 | \
+            while IFS="|" read date file; do
+              # For each unique file (newest first), add a list item with link and date
+              # append it to the site
+              echo "<li><a href=\"https://github.com/${{ github.repository }}/blob/main/$file\">$file</a> <span class=\"date\">($date)</span></li>" >> index.html
+            done
 
-      # 3. DEPLOY TO GITHUB PAGES
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          # GITHUB_TOKEN is automatically provided; it authorizes the Action to push
-          # to the gh-pages branch. "publish_dir: ." means publish everything in
-          # the current directory (where index.html lives).
+          echo "</ul></div>" >> index.html
+
+          # ------------------------------
+          # 3. GROUP ALL FILES BY TOP-LEVEL FOLDER
+          # ------------------------------
+          echo "<h2>All Files by Folder</h2>" >> index.html
+
+          # 'find' lists every file (except .git folder and the index.html we’re generating)
+          # 'sed' removes the leading "./" from each path
+          # 'sort' ensures the list is alphabetically ordered so grouping works
+          # | is pipe into next command
+          find . -type f ! -path "./.git/*" ! -name "index.html" | sed 's|^\./||' | sort | \
+          awk -F/ '
+            BEGIN{current=""}
+            {
+              folder=$1;  # first part of the path, e.g. "projects_1"
+              if(folder!=current){
+                if(current!=""){print "</ul>"}          # close previous list if switching folders
+                print "<h3>"folder"</h3><ul>";         # start new section
+                current=folder
+              }
+              print "<li><a href=\"https://github.com/'"${GITHUB_REPOSITORY}"'/blob/main/"$0"\">"$0"</a></li>"
+            }
+            END{if(current!=""){print "</ul>"}}
+          ' >> index.html
+
+          # ------------------------------
+          # 4. CLOSE THE HTML PAGE
+          # ------------------------------
+          echo "</body></html>" >> index.html
+
