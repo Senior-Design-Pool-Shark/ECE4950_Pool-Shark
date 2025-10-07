@@ -83,7 +83,7 @@ jobs:
             while IFS="|" read date file; do
               # For each unique file (newest first), add a list item with link and date
               # append it to the site
-              echo "<li><a href=\"https://github.com/senior-design-pool-shark/ECE4950_Pook-Shark/blob/main/$file\">$file</a> <span class=\"date\">($date)</span></li>" >> index.html
+              echo "<li><a href=\"https://github.com/Senior-Design-Pool-Shark/ECE4950_Pool-Shark/blob/main/$file\">$file</a> <span class=\"date\">($date)</span></li>" >> index.html
             done
 
           echo "</ul></div>" >> index.html
@@ -108,7 +108,7 @@ jobs:
                 current=folder
               }
               subpath = ($2) ? substr($0, index($0, $2)) : $0
-              print "<li><a href=\"https://github.com/senior-design-pool-shark/ECE4950_Pook-Shark/blob/main/"$0"\">"subpath"</a></li>"
+              print "<li><a href=\"https://github.com/Senior-Design-Pool-Shark/ECE4950_Pool-Shark/blob/main/"$0"\">"subpath"</a></li>"
             }
             END{if(current!=""){print "</ul>"}}
           ' >> index.html
